@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -8,10 +8,14 @@ import AttendanceDetailScreen from "./screens/AttendanceDetailScreen";
 import LoginScreen from "./screens/LoginScreen";
 import { Provider as AuthProvider } from "../src/context/AuthContext";
 import ResolveAuthScreen from "./screens/ResolveAuthScreen";
-import { setNavigator } from "./navigationRef";
+import { setNavigator } from "./navigationRef"; 
 import AttendanceHomeScreen from "./screens/AttendanceHomeScreen";
 import AttendanceMarkScreen from "./screens/AttendanceMarkScreen";
-
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AnnouncementsScreen from "./screens/AnnouncementScreen";
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+// Stack and Tab Navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -43,7 +47,7 @@ const MainTab = () => (
       options={{
         title: "Mark Attendance",
         tabBarIcon: ({ color }) => (
-          <FontAwesome name="check-square" size={24} color={color} />
+          <FontAwesome5 name="map-marked-alt" size={24} color={color} />
         ),
       }}
     />
@@ -57,13 +61,23 @@ const MainTab = () => (
         ),
       }}
     />
+        <Tab.Screen
+      name="Announcement"
+      component={AnnouncementsScreen}
+      options={{  
+        title: "Announcement",
+        tabBarIcon: ({ color }) => (
+          <MaterialIcons name="announcement" size={24} color={color} />
+        ),
+      }}
+    />
     <Tab.Screen
       name="Account"
       component={AccountScreen}
       options={{
         title: "Account",
         tabBarIcon: ({ color }) => (
-          <FontAwesome name="gear" size={24} color={color} />
+          <MaterialIcons name="manage-accounts" size={24} color={color} />
         ),
       }}
     />
@@ -72,12 +86,19 @@ const MainTab = () => (
 
 // Main App Component
 const App = () => {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Set up navigator reference once app is ready
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 1000); // Set timeout to simulate loading and initialization
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <NavigationContainer
-      ref={(navigator) => {
-        setNavigator(navigator);
-      }}
-    >
+    <NavigationContainer ref={(navigatorRef) => setNavigator(navigatorRef) }>
       <AuthProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="ResolveAuth" component={ResolveAuthScreen} />

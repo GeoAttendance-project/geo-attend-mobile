@@ -54,7 +54,7 @@ const login =
   async ({ username, password }) => {
     console.log("Context",{ username, password })
     try {
-      const response = await axios.post("http://192.168.1.3:3001/api/v1/student/auth/login", {
+      const response = await axios.post("http://192.168.144.25:3001/api/v1/student/auth/login", {
         username,
         password,
       });

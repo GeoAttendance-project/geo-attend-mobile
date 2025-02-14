@@ -89,7 +89,7 @@ const AttendanceMarkScreen = () => {
       }
 
       await axios.post(
-        "http://192.168.1.3:3001/api/v1/student/attendance/mark",
+        "http://192.168.144.25:3001/api/v1/student/attendance/mark",
         {
           latitude: location.latitude,
           longitude: location.longitude,

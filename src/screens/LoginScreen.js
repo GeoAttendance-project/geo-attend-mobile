@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,31 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  BackHandler,
 } from "react-native";
 import { Context as AuthContext } from "../context/AuthContext";
+import { useBackHandler } from "../BackButtonHandler";
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
+  useBackHandler(navigation);
+
   const { login, clearErrorMessage, state } = useContext(AuthContext);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        // Exit the app when back is pressed on the Signin screen
+        BackHandler.exitApp();
+        return true; // Prevent default back behavior
+      }
+    );
+
+    return () => backHandler.remove(); // Clean up the event listener on unmount
+  }, []);
 
   const handleLogin = async () => {
     console.log("CLICKED");
@@ -37,7 +54,7 @@ const LoginScreen = () => {
 
       <Image
         source={{
-          uri: "https://img.freepik.com/free-vector/people-navigating-map-using-gps-flat-illustration_74855-19634.jpg",
+          uri: "https://i.ibb.co/JRrGxpf3/images.jpg",
         }}
         style={styles.image}
       />

@@ -1,163 +1,221 @@
-import { useNavigation } from "@react-navigation/native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  Button,
   StyleSheet,
+  TouchableOpacity,
+  Alert,
   ActivityIndicator,
+  Image,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // To use icons
-import moment from "moment"; // To format the date and time
-import axios from "axios"; // Ensure axios is installed
+import * as Location from "expo-location";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import { useBackHandler } from "../BackButtonHandler";
 
-const AttendanceHomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
+  useBackHandler(navigation);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [currentTime, setCurrentTime] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-  const navigation = useNavigation();
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [lastMarkedTime, setLastMarkedTime] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Format the current date and time
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(moment().format("dddd, MMMM Do YYYY, h:mm:ss A"));
-    }, 1000); // Update every second
-
-    return () => clearInterval(interval); // Clean up on unmount
-  }, []);
-
-  // Check if attendance is marked for today
-  useEffect(() => {
-    const checkAttendanceStatus = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(
-          "http://192.168.1.3:3001/api/v1/student/attendance/check", // API call to check attendance status
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${yourToken}`, // Add the correct token if needed
-            },
-          }
-        );
-
-        if (response.data.status === "success") {
-          setAttendanceMarked(response.data.marked);
-          setStatusMessage(
-            response.data.marked
-              ? "Attendance Marked!"
-              : "Attendance Not Marked Yet"
-          );
-        } else {
-          setStatusMessage("Error checking attendance status");
-        }
-      } catch (error) {
-        setStatusMessage("Error checking attendance status");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     checkAttendanceStatus();
   }, []);
 
-  // Handle Mark Attendance button press
-  const handleMarkAttendance = async () => {
-    setLoading(true);
+  const checkAttendanceStatus = async () => {
     try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
       const response = await axios.get(
-        "http://192.168.1.3:3001/api/v1/student/attendance/mark", // API call to mark attendance
+        "http://192.168.144.25:3001/api/v1/student/attendance/status",
         {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${yourToken}`, // Add the correct token if needed
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      if (response.data.status === "success") {
+      if (response.data.marked) {
         setAttendanceMarked(true);
-        setStatusMessage("Attendance Marked!");
+        setLastMarkedTime(response.data.timestamp);
       } else {
-        setStatusMessage("Error marking attendance");
+        setAttendanceMarked(false);
+        setLastMarkedTime(null);
       }
     } catch (error) {
-      setStatusMessage("Error marking attendance");
+      console.error("Error checking attendance status:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    checkAttendanceStatus().then(() => setRefreshing(false));
+  }, []);
+
+  const handleMarkAttendance = async () => {
+    if (attendanceMarked) {
+      Alert.alert(
+        "Already Marked",
+        "You have already marked your attendance today."
+      );
+      return;
+    }
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required to mark attendance."
+        );
+        return;
+      }
+
+      const locationData = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setLocation(locationData.coords);
+
+      const token = await AsyncStorage.getItem("token");
+      await axios.post(
+        "http://192.168.144.25:3001/api/v1/student/attendance/mark",
+        {
+          latitude: locationData.coords.latitude,
+          longitude: locationData.coords.longitude,
+          timestamp: new Date().toISOString(),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setAttendanceMarked(true);
+      setLastMarkedTime(new Date().toISOString());
+      Alert.alert("Success", "Attendance marked successfully!");
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to mark attendance."
+      );
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Attendance Management</Text>
-      <Ionicons
-        name="checkmark-circle"
-        size={50}
-        color="#2ecc71"
-        style={styles.icon}
+    <ScrollView
+      contentContainerStyle={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      <Image
+        source={{
+          uri: "https://i0.wp.com/csice.edu.in/wp-content/uploads/2024/01/csice-logo-main-3.png",
+        }}
+        style={styles.image}
       />
+      <View style={styles.card}>
+        <Text style={styles.header}>Attendance Status</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#3498db" />
+        ) : (
+          <View style={styles.statusContainer}>
+            <Ionicons
+              name={attendanceMarked ? "checkmark-circle" : "time-outline"}
+              size={50}
+              color={attendanceMarked ? "#2ecc71" : "#f39c12"}
+            />
+            <Text style={styles.statusText}>
+              {attendanceMarked ? "Attendance Marked" : "Pending"}
+            </Text>
+            {lastMarkedTime && (
+              <Text style={styles.timestamp}>
+                Last Marked: {new Date(lastMarkedTime).toLocaleTimeString()}
+              </Text>
+            )}
+          </View>
+        )}
+      </View>
 
-      <Text style={styles.dateTime}>{currentTime}</Text>
-
-      {loading ? (
-        <ActivityIndicator
-          size="large"
-          color="#3498db"
-          style={styles.spinner}
-        />
-      ) : (
-        <Text style={styles.status}>{statusMessage}</Text>
-      )}
-
-      <Button
-        title={loading ? "Marking Attendance..." : "Mark Attendance"}
-        onPress={handleMarkAttendance} // Trigger marking attendance
-        color={loading ? "#f39c12" : "#3498db"}
-        disabled={loading || attendanceMarked}
-        style={styles.button}
-      />
-    </View>
+      <TouchableOpacity
+        style={[styles.button, attendanceMarked && styles.disabledButton]}
+        onPress={handleMarkAttendance}
+        disabled={attendanceMarked}
+      >
+        <Text style={styles.buttonText}>
+          {attendanceMarked ? "Attendance Marked" : "Mark Attendance"}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f4f6f7",
     padding: 20,
-    backgroundColor: "#ecf0f1", // Light background for the home screen
   },
-  title: {
-    fontSize: 28,
+  image: {
+    width: 250,
+    height: 150,
+    resizeMode: "contain",
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: "#ecf0f1",
+    padding: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#bdc3c7",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 20,
+  },
+  header: {
+    fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 20,
-    color: "#2c3e50",
-  },
-  icon: {
-    marginBottom: 30,
-  },
-  dateTime: {
-    fontSize: 18,
     color: "#34495e",
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  statusContainer: {
+    alignItems: "center",
+    marginTop: 10,
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#2c3e50",
+    marginTop: 5,
+  },
+  timestamp: {
+    fontSize: 14,
+    color: "#7f8c8d",
+    marginTop: 5,
   },
   button: {
-    width: "80%",
-    paddingVertical: 10,
+    backgroundColor: "#2ecc71",
+    padding: 15,
     borderRadius: 10,
-    backgroundColor: "#3498db",
+    width: "100%",
+    alignItems: "center",
   },
-  status: {
-    marginTop: 20,
+  buttonText: {
+    color: "#fff",
     fontSize: 18,
-    color: "green",
+    fontWeight: "bold",
   },
-  spinner: {
-    marginTop: 20,
+  disabledButton: {
+    backgroundColor: "#95a5a6",
   },
 });
 
-export default AttendanceHomeScreen;
+export default HomeScreen;
