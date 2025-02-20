@@ -1,18 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
-import { View, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import { View, StyleSheet, Alert, ActivityIndicator, ImageBackground } from "react-native";
 import { Context } from "../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { navigate } from "../navigationRef";
 import axios from "axios";
-import {
-  Card,
-  Title,
-  Paragraph,
-  Button,
-  Avatar,
-  Divider,
-} from "react-native-paper";
-import { CommonActions } from "@react-navigation/native";
+import { Card, Title, Paragraph, Button, Avatar, Divider } from "react-native-paper";
 import { useBackHandler } from "../BackButtonHandler";
 
 const AccountScreen = ({ navigation }) => {
@@ -31,12 +23,9 @@ const AccountScreen = ({ navigation }) => {
           return;
         }
 
-        const response = await axios.get(
-          "http://192.168.144.25:3001/api/v1/student/profile",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await axios.get("http://192.168.142.25:3001/api/v1/student/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         setUser(response.data.data);
       } catch (error) {
@@ -51,10 +40,8 @@ const AccountScreen = ({ navigation }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem("token"); // Clear the authentication token
-
-      // Navigate to 'Signin' screen after clearing the token
-      navigate("Signin"); // Using the 'navigate' function to handle the navigation
+      await AsyncStorage.removeItem("token");
+      navigate("Signin");
     } catch (error) {
       console.error("Logout Error:", error);
     }
@@ -69,44 +56,49 @@ const AccountScreen = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.avatarContainer}>
-            <Avatar.Image
-              size={80}
-              source={{ uri: "https://i.pravatar.cc/150?u=" + user?.email }}
-            />
-            <Title style={styles.name}>
-              {user?.firstName} {user?.lastName}
-            </Title>
-            <Paragraph style={styles.username}>@{user?.username}</Paragraph>
-          </View>
-          <Divider style={styles.divider} />
-          <View style={styles.infoContainer}>
-            <Paragraph style={styles.info}>📧 Email: {user?.email}</Paragraph>
-            <Paragraph style={styles.info}>
-              🏫 Dept: {user?.department}, Year {user?.year}
-            </Paragraph>
-            <Paragraph style={styles.info}>
-              🆔 Roll No: {user?.rollno}
-            </Paragraph>
-          </View>
-        </Card.Content>
-      </Card>
+    <ImageBackground
+      source={{ uri: "https://source.unsplash.com/random/800x600?nature" }}
+      style={styles.background}
+      blurRadius={5}
+    >
+      <View style={styles.container}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <View style={styles.avatarContainer}>
+              <Avatar.Image
+                size={90}
+                source={{ uri: user?.avatar || "https://icons.veryicon.com/png/o/miscellaneous/common-icons-31/default-avatar-2.png" }}
+                style={styles.avatar}
+              />
+              <Title style={styles.name}>{user?.name}</Title>
+              <Paragraph style={styles.rollNo}>@{user?.name}</Paragraph>
+            </View>
+            <Divider style={styles.divider} />
+            <View style={styles.infoContainer}>
+              <Paragraph style={styles.info}>📧 Email: {user?.email}</Paragraph>
+              <Paragraph style={styles.info}>🏫 Dept: {user?.department}, Year {user?.year}</Paragraph>
+              <Paragraph style={styles.info}>🆔 Exam No: {user?.examNo}</Paragraph>
+            </View>
+          </Card.Content>
+        </Card>
 
-      <Button mode="contained" onPress={logout} style={styles.logoutButton}>
-        Logout
-      </Button>
-    </View>
+        <Button mode="contained" onPress={logout} style={styles.logoutButton} labelStyle={styles.logoutText}>
+          Logout
+        </Button>
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: "cover",
+    justifyContent: "center",
+  },
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f4f6f9",
     justifyContent: "center",
   },
   loaderContainer: {
@@ -117,7 +109,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     borderRadius: 15,
-    backgroundColor: "#fff",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -128,18 +120,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
+  avatar: {
+    backgroundColor: "#e0e0e0",
+  },
   name: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#2d3436",
     marginTop: 10,
   },
-  username: {
+  rollNo: {
     fontSize: 16,
     color: "#636e72",
   },
   divider: {
     marginVertical: 15,
+    backgroundColor: "#ddd",
   },
   infoContainer: {
     marginTop: 10,
@@ -154,6 +150,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ff4757",
     paddingVertical: 8,
     borderRadius: 8,
+    alignSelf: "center",
+    width: "80%",
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

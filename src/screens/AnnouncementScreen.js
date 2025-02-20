@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
+  Alert,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,7 +24,7 @@ const AnnouncementsScreen = () => {
         Alert.alert("Error", "Authentication token not found. Please log in again.");
         return;
       }
-      const response = await axios.get("http://192.168.144.25:3001/api/v1/student/announcement", {
+      const response = await axios.get("http://192.168.142.25:3001/api/v1/student/announcement", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -55,7 +56,8 @@ const AnnouncementsScreen = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading announcements...</Text>
       </View>
     );
   }
@@ -70,6 +72,7 @@ const AnnouncementsScreen = () => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.header}>📢 Announcements</Text>
       <FlatList
         data={announcements}
         keyExtractor={(item) => item._id}
@@ -90,12 +93,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F7FA",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#007AFF",
+    marginBottom: 16,
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 10,
   },
   errorText: {
     color: "red",
@@ -103,28 +118,31 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "white",
-    padding: 16,
-    marginBottom: 10,
-    borderRadius: 8,
+    padding: 20,
+    marginBottom: 12,
+    borderRadius: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 5,
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 8,
+    color: "#222",
   },
   content: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: "#333",
+    fontSize: 16,
+    marginBottom: 10,
+    color: "#444",
   },
   date: {
-    fontSize: 12,
-    color: "gray",
+    fontSize: 14,
+    textAlign: "right",
+    color: "#666",
+    fontStyle: "italic",
   },
 });
 
