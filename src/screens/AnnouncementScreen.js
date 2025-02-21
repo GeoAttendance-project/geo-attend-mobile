@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+const EXPO_PUBLIC_API_URL= process.env.EXPO_PUBLIC_API_URL
 const AnnouncementsScreen = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ const AnnouncementsScreen = () => {
         Alert.alert("Error", "Authentication token not found. Please log in again.");
         return;
       }
-      const response = await axios.get("http://192.168.142.25:3001/api/v1/student/announcement", {
+      const response = await axios.get(`${EXPO_PUBLIC_API_URL}/api/v1/student/announcement`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,

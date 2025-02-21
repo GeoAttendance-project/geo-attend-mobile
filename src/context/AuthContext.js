@@ -2,7 +2,7 @@ import axios from "axios";
 import { navigate } from "../navigationRef";
 import createDataContext from "./createDataContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL
 const authReducer = (state, action) => {
   switch (action.type) {
     case "add_error":
@@ -52,9 +52,8 @@ const signup =
 const login =
   (dispatch) =>
   async ({ username, password }) => {
-    console.log("Context",{ username, password })
     try {
-      const response = await axios.post("http://192.168.142.25:3001/api/v1/student/auth/login", {
+      const response = await axios.post(`${EXPO_PUBLIC_API_URL}/api/v1/student/auth/login`, {
         username,
         password,
       });

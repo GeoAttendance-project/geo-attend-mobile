@@ -6,7 +6,7 @@ import { navigate } from "../navigationRef";
 import axios from "axios";
 import { Card, Title, Paragraph, Button, Avatar, Divider } from "react-native-paper";
 import { useBackHandler } from "../BackButtonHandler";
-
+const EXPO_PUBLIC_API_URL= process.env.EXPO_PUBLIC_API_URL
 const AccountScreen = ({ navigation }) => {
   useBackHandler(navigation);
 
@@ -23,7 +23,7 @@ const AccountScreen = ({ navigation }) => {
           return;
         }
 
-        const response = await axios.get("http://192.168.142.25:3001/api/v1/student/profile", {
+        const response = await axios.get(`${EXPO_PUBLIC_API_URL}/api/v1/student/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

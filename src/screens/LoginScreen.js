@@ -35,7 +35,6 @@ const LoginScreen = ({ navigation }) => {
   }, []);
 
   const handleLogin = async () => {
-    console.log("CLICKED");
     clearErrorMessage();
     try {
       await login({ username, password });

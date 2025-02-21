@@ -16,7 +16,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useBackHandler } from "../BackButtonHandler";
-
+const EXPO_PUBLIC_API_URL=process.env.EXPO_PUBLIC_API_URL
 const HomeScreen = ({ navigation }) => {
   useBackHandler(navigation);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
@@ -39,13 +39,13 @@ const HomeScreen = ({ navigation }) => {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
       const response = await axios.get(
-        "http://192.168.142.25:3001/api/v1/student/attendance/status",
+        `${EXPO_PUBLIC_API_URL}/api/v1/student/attendance/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAttendanceMarked(response.data.marked);
       setLastMarkedTime(response.data.timestamp || null);
     } catch (error) {
-      console.error("Error checking attendance status:", error);
+      console.log("Error checking attendance status:", error);
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ const HomeScreen = ({ navigation }) => {
       const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const token = await AsyncStorage.getItem("token");
       await axios.post(
-        "http://192.168.142.25:3001/api/v1/student/attendance/mark",
+        `${EXPO_PUBLIC_API_URL}/api/v1/student/attendance/mark`,
         {
           latitude: locationData.coords.latitude,
           longitude: locationData.coords.longitude,

@@ -11,7 +11,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons"; // For location icon
-
+const EXPO_PUBLIC_API_URL=process.env.EXPO_PUBLIC_API_URL
 const AttendanceMarkScreen = () => {
   const [hasLocationPermission, setHasLocationPermission] = useState(null);
   const [location, setLocation] = useState(null);
@@ -89,7 +89,7 @@ const AttendanceMarkScreen = () => {
       }
 
       await axios.post(
-        "http://192.168.142.25:3001/api/v1/student/attendance/mark",
+        `${EXPO_PUBLIC_API_URL}/api/v1/student/attendance/mark`,
         {
           latitude: location.latitude,
           longitude: location.longitude,
