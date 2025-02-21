@@ -2,7 +2,7 @@ import axios from "axios";
 import { navigate } from "../navigationRef";
 import createDataContext from "./createDataContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL
+import { API_URL } from "../config";
 const authReducer = (state, action) => {
   switch (action.type) {
     case "add_error":
@@ -53,15 +53,18 @@ const login =
   (dispatch) =>
   async ({ username, password }) => {
     try {
-      const response = await axios.post(`${EXPO_PUBLIC_API_URL}/api/v1/student/auth/login`, {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        `${API_URL}/api/v1/student/auth/login`,
+        {
+          username,
+          password,
+        }
+      );
       await AsyncStorage.setItem("token", response.data.token);
       dispatch({ type: "signin", payload: response.data.token });
       navigate("mainFlow");
     } catch (err) {
-      console.log(err)
+      console.log(err);
       dispatch({
         type: "add_error",
         payload: "Something went wrong with sign in",

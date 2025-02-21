@@ -12,7 +12,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useBackHandler } from "../BackButtonHandler";
-const EXPO_PUBLIC_API_URL = process.env.EXPO_PUBLIC_API_URL
+import { API_URL } from "../config";
 const AttendanceDetailScreen = ({ navigation }) => {
   useBackHandler(navigation);
 
@@ -28,7 +28,7 @@ const AttendanceDetailScreen = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get(`${EXPO_PUBLIC_API_URL}/api/v1/student/attendance`, {
+      const response = await axios.get(`${API_URL}/api/v1/student/attendance`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

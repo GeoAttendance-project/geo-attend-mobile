@@ -16,7 +16,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useBackHandler } from "../BackButtonHandler";
-const EXPO_PUBLIC_API_URL=process.env.EXPO_PUBLIC_API_URL
+import { API_URL } from "../config";
 const HomeScreen = ({ navigation }) => {
   useBackHandler(navigation);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
@@ -39,7 +39,7 @@ const HomeScreen = ({ navigation }) => {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
       const response = await axios.get(
-        `${EXPO_PUBLIC_API_URL}/api/v1/student/attendance/status`,
+        `${API_URL}/api/v1/student/attendance/status`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAttendanceMarked(response.data.marked);
@@ -71,7 +71,7 @@ const HomeScreen = ({ navigation }) => {
       const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const token = await AsyncStorage.getItem("token");
       await axios.post(
-        `${EXPO_PUBLIC_API_URL}/api/v1/student/attendance/mark`,
+        `${API_URL}/api/v1/student/attendance/mark`,
         {
           latitude: locationData.coords.latitude,
           longitude: locationData.coords.longitude,
