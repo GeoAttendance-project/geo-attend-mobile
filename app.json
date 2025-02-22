@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "CSICE Attendnace",
-    "slug": "CSICE Attendnace",
+    "name": "CSICE",
+    "slug": "CSICE",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -31,8 +31,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "ac919a53-c211-40c3-8d84-44304c43fcb4"
+        "projectId": "87583c5b-b539-446e-8598-13279ca906bb"
       }
-    }
+    },
+    "owner": "saranmani"
   }
 }
