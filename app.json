@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "attendance-app",
-    "slug": "attendance-app",
+    "name": "CSICE Attendnace",
+    "slug": "CSICE Attendnace",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
