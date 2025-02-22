@@ -68,7 +68,7 @@ const HomeScreen = ({ navigation }) => {
         Alert.alert("Permission Denied", "Location permission is required to mark attendance.");
         return;
       }
-      const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
       const token = await AsyncStorage.getItem("token");
       await axios.post(
         `${API_URL}/api/v1/student/attendance/mark`,
