@@ -57,7 +57,7 @@ const AttendanceMarkScreen = () => {
           }
         );
       } catch (error) {
-        console.error("Error watching location:", error);
+        console.log("Error watching location:", error);
       }
     };
   

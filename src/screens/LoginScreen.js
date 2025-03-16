@@ -39,9 +39,10 @@ const LoginScreen = ({ navigation }) => {
     try {
       await login({ username, password });
     } catch (error) {
+      console.log(error)
       Alert.alert(
         "Error",
-        state.errorMessage || "An error occurd during login"
+        error.response?.data?.message
       );
     }
   };

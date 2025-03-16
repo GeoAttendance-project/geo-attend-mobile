@@ -8,13 +8,20 @@ import AttendanceDetailScreen from "./screens/AttendanceDetailScreen";
 import LoginScreen from "./screens/LoginScreen";
 import { Provider as AuthProvider } from "../src/context/AuthContext";
 import ResolveAuthScreen from "./screens/ResolveAuthScreen";
-import { setNavigator } from "./navigationRef"; 
+import { setNavigator } from "./navigationRef";
 import AttendanceHomeScreen from "./screens/AttendanceHomeScreen";
 import AttendanceMarkScreen from "./screens/AttendanceMarkScreen";
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import AnnouncementsScreen from "./screens/AnnouncementScreen";
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
+import markAttendanceIcon from "../assets/mark-attendance-icon.png";
+import attendanceListIcon from "../assets/attendance-list-icon.png";
+import announcementIcon from "../assets/announcement-icon.png";
+import accountIcon from "../assets/account-icon.png";
+
+import { Image } from "react-native";
+
 // Stack and Tab Navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -40,14 +47,17 @@ const AttendanceStack = () => (
 
 // Main Tab Navigator
 const MainTab = () => (
-  <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#3F72AF" }}>
+  <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#127a72" }}>
     <Tab.Screen
       name="AttendanceStack"
       component={AttendanceStack}
       options={{
         title: "Mark Attendance",
         tabBarIcon: ({ color }) => (
-          <FontAwesome5 name="map-marked-alt" size={24} color={color} />
+          <Image
+            source={markAttendanceIcon}
+            style={{ width: 24, height: 24, tintColor: color }}
+          />
         ),
       }}
     />
@@ -57,17 +67,23 @@ const MainTab = () => (
       options={{
         title: "Attendance Details",
         tabBarIcon: ({ color }) => (
-          <FontAwesome name="list-alt" size={24} color={color} />
+          <Image
+            source={attendanceListIcon}
+            style={{ width: 24, height: 24, tintColor: color }}
+          />
         ),
       }}
     />
-        <Tab.Screen
+    <Tab.Screen
       name="Announcement"
       component={AnnouncementsScreen}
-      options={{  
+      options={{
         title: "Announcement",
         tabBarIcon: ({ color }) => (
-          <MaterialIcons name="announcement" size={24} color={color} />
+          <Image
+            source={announcementIcon}
+            style={{ width: 24, height: 24, tintColor: color }}
+          />
         ),
       }}
     />
@@ -77,7 +93,10 @@ const MainTab = () => (
       options={{
         title: "Account",
         tabBarIcon: ({ color }) => (
-          <MaterialIcons name="manage-accounts" size={24} color={color} />
+          <Image
+            source={accountIcon}
+            style={{ width: 24, height: 24, tintColor: color }}
+          />
         ),
       }}
     />
@@ -98,7 +117,7 @@ const App = () => {
   }, []);
 
   return (
-    <NavigationContainer ref={(navigatorRef) => setNavigator(navigatorRef) }>
+    <NavigationContainer ref={(navigatorRef) => setNavigator(navigatorRef)}>
       <AuthProvider>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="ResolveAuth" component={ResolveAuthScreen} />

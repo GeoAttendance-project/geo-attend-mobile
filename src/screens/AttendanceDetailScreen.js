@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { useBackHandler } from "../BackButtonHandler";
 import { API_URL } from "../config";
+
 const AttendanceDetailScreen = ({ navigation }) => {
   useBackHandler(navigation);
 
@@ -35,7 +36,8 @@ const AttendanceDetailScreen = ({ navigation }) => {
       const formattedData = response.data.data.map((item) => ({
         id: item._id,
         date: new Date(item.markedDate).toISOString().split("T")[0],
-        status: "Present", // Assuming all fetched entries are present
+        morning: item.morning.markedAt ? "Present" : "Absent",
+        afternoon: item.afternoon.markedAt ? "Present" : "Absent",
       }));
 
       LayoutAnimation.easeInEaseOut();
@@ -67,18 +69,26 @@ const AttendanceDetailScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Attendance Details</Text>
       <FlatList
         data={attendanceData}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <View style={styles.cardRow}>
-              <Text style={styles.dateText}>{item.date}</Text>
-              <Text style={[styles.statusBadge, item.status === "Present" ? styles.present : styles.absent]}>
-                {item.status}
-              </Text>
+            <Text style={styles.dateText}>{item.date}</Text>
+            <View style={styles.sessionContainer}>
+              <View style={styles.sessionRow}>
+                <Text style={styles.sessionLabel}>Morning:</Text>
+                <Text style={[styles.statusBadge, item.morning === "Present" ? styles.present : styles.absent]}>
+                  {item.morning}
+                </Text>
+              </View>
+              <View style={styles.sessionRow}>
+                <Text style={styles.sessionLabel}>Afternoon:</Text>
+                <Text style={[styles.statusBadge, item.afternoon === "Present" ? styles.present : styles.absent]}>
+                  {item.afternoon}
+                </Text>
+              </View>
             </View>
           </View>
         )}
@@ -116,18 +126,27 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   dateText: {
     fontSize: 18,
     fontWeight: "600",
     color: "#2d3436",
+    marginBottom: 10,
+  },
+  sessionContainer: {
+    gap: 8,
+  },
+  sessionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sessionLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#555",
   },
   statusBadge: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
     paddingVertical: 4,
     paddingHorizontal: 12,

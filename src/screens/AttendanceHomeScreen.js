@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,21 +10,38 @@ import {
   ScrollView,
   RefreshControl,
   Animated,
+  Dimensions,
 } from "react-native";
 import * as Location from "expo-location";
+import * as Device from "expo-device";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useBackHandler } from "../BackButtonHandler";
 import { API_URL } from "../config";
+
+const { width } = Dimensions.get("window");
+
 const HomeScreen = ({ navigation }) => {
   useBackHandler(navigation);
-  const [attendanceMarked, setAttendanceMarked] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [lastMarkedTime, setLastMarkedTime] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
 
+  const [attendanceMarked, setAttendanceMarked] = useState({
+    morning: false,
+    afternoon: false,
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [markingAttendance, setMarkingAttendance] = useState({
+    morning: false,
+    afternoon: false,
+  });
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const [attendanceTime, setAttendanceTime] = useState({
+    isMorning: false,
+    isAfternoon: false,
+  });
+
+  // Fetch attendance status on mount
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -34,85 +51,133 @@ const HomeScreen = ({ navigation }) => {
     checkAttendanceStatus();
   }, []);
 
+  // Request location permission
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required to mark attendance."
+        );
+      }
+    })();
+  }, []);
+
+  // Fetch attendance status
   const checkAttendanceStatus = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get(
-        `${API_URL}/api/v1/student/attendance/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setAttendanceMarked(response.data.marked);
-      setLastMarkedTime(response.data.timestamp || null);
+      const response = await axios.get(`${API_URL}/api/v1/student/attendance/status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAttendanceMarked(response.data.attendance);
+      setAttendanceTime({
+        isMorning: response.data.isMorningTime,
+        isAfternoon: response.data.isAfternoonTime,
+      });
     } catch (error) {
-      console.log("Error checking attendance status:", error);
+      Alert.alert("Error", error.response?.data?.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    checkAttendanceStatus().then(() => setRefreshing(false));
-  }, []);
-
-  const handleMarkAttendance = async () => {
-    if (attendanceMarked) {
-      Alert.alert("Already Marked", "You have already marked your attendance today.");
-      return;
-    }
-
+  // Handle marking attendance
+  const handleMarkAttendance = async (session) => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission Denied", "Location permission is required to mark attendance.");
-        return;
-      }
-      const locationData = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+      setMarkingAttendance((prev) => ({ ...prev, [session]: true }));
       const token = await AsyncStorage.getItem("token");
-      await axios.post(
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+        timeout: 10000,
+      });
+
+      const deviceId = Device.osInternalBuildId || Device.deviceName || "Unknown";
+
+      const response = await axios.post(
         `${API_URL}/api/v1/student/attendance/mark`,
         {
-          latitude: locationData.coords.latitude,
-          longitude: locationData.coords.longitude,
-          timestamp: new Date().toISOString(),
+          session,
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          deviceId,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAttendanceMarked(true);
-      setLastMarkedTime(new Date().toISOString());
-      Alert.alert("Success", "Attendance marked successfully!");
+
+      if (response.data.success) {
+        setAttendanceMarked((prev) => ({ ...prev, [session]: true }));
+        await checkAttendanceStatus();
+      } else {
+        Alert.alert("Error", response.data.message || "Failed to mark attendance");
+      }
     } catch (error) {
-      console.log(error);
-      Alert.alert("Error", error.response?.data?.message || "Failed to mark attendance.");
+      Alert.alert("Error", error.response?.data?.message || "Something went wrong");
+    } finally {
+      setMarkingAttendance((prev) => ({ ...prev, [session]: false }));
     }
   };
 
   return (
     <ScrollView
       contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={checkAttendanceStatus} />}
     >
-      <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}> 
-        <Image source={{ uri: "https://i0.wp.com/csice.edu.in/wp-content/uploads/2024/01/csice-logo-main-3.png" }} style={styles.image} />
+      <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
+        <Image
+          source={{ uri: "https://i0.wp.com/csice.edu.in/wp-content/uploads/2024/01/csice-logo-main-3.png" }}
+          style={styles.image}
+          accessibilityLabel="College Logo"
+        />
       </Animated.View>
 
       <View style={styles.card}>
         <Text style={styles.header}>Attendance Status</Text>
         {loading ? (
-          <ActivityIndicator size="large" color="#3498db" />
+          <ActivityIndicator size="large" color="#6C63FF" />
         ) : (
           <View style={styles.statusContainer}>
-            <Ionicons name={attendanceMarked ? "checkmark-circle" : "time-outline"} size={60} color={attendanceMarked ? "#27ae60" : "#f39c12"} />
-            <Text style={styles.statusText}>{attendanceMarked ? "Attendance Marked" : "Pending"}</Text>
-            {lastMarkedTime && <Text style={styles.timestamp}>Last Marked: {new Date(lastMarkedTime).toLocaleTimeString()}</Text>}
+            <Ionicons
+              name={attendanceMarked.morning && attendanceMarked.afternoon ? "checkmark-circle" : "time-outline"}
+              size={60}
+              color={attendanceMarked.morning && attendanceMarked.afternoon ? "#127a72" : "#FF6584"}
+            />
+            <Text style={styles.statusText}>
+              {attendanceMarked.morning && attendanceMarked.afternoon
+                ? "Attendance Marked for Both Sessions"
+                : "Pending Attendance"}
+            </Text>
           </View>
         )}
       </View>
 
-      <TouchableOpacity style={[styles.button, attendanceMarked && styles.disabledButton]} onPress={handleMarkAttendance} disabled={attendanceMarked}>
-        <Text style={styles.buttonText}>{attendanceMarked ? "Attendance Marked" : "Mark Attendance"}</Text>
-      </TouchableOpacity>
+      {["morning", "afternoon"].map((session) => (
+        <TouchableOpacity
+          key={session}
+          style={[
+            styles.button,
+            (!attendanceTime[`is${session.charAt(0).toUpperCase() + session.slice(1)}`] || attendanceMarked[session]) && styles.disabledButton,
+          ]}
+          onPress={() => handleMarkAttendance(session)}
+          disabled={!attendanceTime[`is${session.charAt(0).toUpperCase() + session.slice(1)}`] || attendanceMarked[session] || markingAttendance[session]}
+          accessibilityRole="button"
+          accessibilityLabel={`Mark ${session} Attendance`}
+        >
+          {markingAttendance[session] ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {attendanceMarked[session]
+                ? `${session.charAt(0).toUpperCase() + session.slice(1)} Attendance Marked`
+                : `Mark ${session.charAt(0).toUpperCase() + session.slice(1)} Attendance`}
+            </Text>
+          )}
+        </TouchableOpacity>
+      ))}
     </ScrollView>
   );
 };
@@ -122,67 +187,69 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ecf0f1",
+    backgroundColor: "#F5F7FA",
     padding: 20,
   },
   headerContainer: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 30,
   },
   image: {
-    width: 250,
+    width: width * 0.8,
     height: 150,
     resizeMode: "contain",
   },
   card: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 12,
-    elevation: 5,
+    backgroundColor: "#FFFFFF",
+    padding: 25,
+    borderRadius: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
     alignItems: "center",
-    width: "90%",
-    marginBottom: 20,
+    width: "100%",
+    marginBottom: 25,
   },
   header: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#34495e",
-    marginBottom: 10,
+    color: "#2E3A59",
+    marginBottom: 15,
+    textAlign: "center",
   },
   statusContainer: {
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 15,
   },
   statusText: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#2c3e50",
-    marginTop: 5,
-  },
-  timestamp: {
-    fontSize: 14,
-    color: "#7f8c8d",
-    marginTop: 5,
+    fontWeight: "600",
+    color: "#4A5568",
+    marginTop: 10,
+    textAlign: "center",
   },
   button: {
-    backgroundColor: "#27ae60",
-    padding: 15,
-    borderRadius: 10,
-    width: "90%",
+    backgroundColor: "#127a72",
+    padding: 20,
+    borderRadius: 15,
+    width: "100%",
     alignItems: "center",
-    elevation: 3,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
+    shadowColor: "#127a72",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 5,
+    marginBottom: 15,
   },
   disabledButton: {
-    backgroundColor: "#95a5a6",
+    backgroundColor: "#CBD5E0",
+  },
+  buttonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
 

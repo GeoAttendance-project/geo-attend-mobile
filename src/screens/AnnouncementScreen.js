@@ -72,7 +72,6 @@ const AnnouncementsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>📢 Announcements</Text>
       <FlatList
         data={announcements}
         keyExtractor={(item) => item._id}
@@ -94,13 +93,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#F3F7FA",
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "#007AFF",
-    marginBottom: 16,
   },
   centered: {
     flex: 1,
