@@ -25,6 +25,7 @@ import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
 import avatraIcon from "../../assets/avatar.png"
 import { API_URL } from "../config";
+import { navigate } from "../navigationRef";
 
 const AccountScreen = ({ navigation }) => {
   const { signout } = useContext(Context);
@@ -126,7 +127,7 @@ const AccountScreen = ({ navigation }) => {
   const logout = async () => {
     try {
       await AsyncStorage.removeItem("token");
-      navigation.navigate("Signin");
+      navigate("Signin");
     } catch (error) {
       console.log("Logout Error:", error);
     }
@@ -163,7 +164,6 @@ const AccountScreen = ({ navigation }) => {
                   style={styles.avatar}
                 />
                 <Title style={styles.name}>{user?.name}</Title>
-                <Paragraph style={styles.rollNo}>@{user?.username}</Paragraph>
               </View>
               <Divider style={styles.divider} />
               <View style={styles.infoContainer}>
@@ -175,9 +175,6 @@ const AccountScreen = ({ navigation }) => {
                 </Paragraph>
                 <Paragraph style={styles.info}>
                   🆔 Exam No: {user?.examNo}
-                </Paragraph>
-                <Paragraph style={styles.info}>
-                  📱 Device ID: {deviceId}
                 </Paragraph>
               </View>
             </Card.Content>
