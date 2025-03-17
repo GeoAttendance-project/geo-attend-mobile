@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Image,
   Text,
+  RefreshControl,
 } from "react-native";
 import { Context } from "../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -17,13 +18,12 @@ import {
   Title,
   Paragraph,
   Button,
-  Avatar,
   Divider,
   TextInput,
 } from "react-native-paper";
 import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
-import avatraIcon from "../../assets/avatar.png"
+import avatraIcon from "../../assets/avatar.png";
 import { API_URL } from "../config";
 import { navigate } from "../navigationRef";
 
@@ -34,61 +34,73 @@ const AccountScreen = ({ navigation }) => {
   const [deviceId, setDeviceId] = useState(null);
   const [reason, setReason] = useState("");
   const [deviceChangeStatus, setDeviceChangeStatus] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Error", "Authentication token missing. Please log in.");
+        return;
+      }
+
+      const response = await axios.get(`${API_URL}/api/v1/student/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUser(response.data.data);
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch profile data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDeviceId = async () => {
+    try {
+      const id = Device.osInternalBuildId || Device.deviceName || "Unknown";
+      setDeviceId(id);
+    } catch (error) {
+      console.log("Error fetching device ID:", error);
+    }
+  };
+
+  const fetchDeviceChangeStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        Alert.alert("Error", "Authentication token missing. Please log in.");
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_URL}/api/v1/student/device-change/status`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setDeviceChangeStatus(response.data.status);
+    } catch (error) {
+      console.log("Error fetching device change status:", error);
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    await fetchProfile();
+    await fetchDeviceId();
+    await fetchDeviceChangeStatus();
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          Alert.alert("Error", "Authentication token missing. Please log in.");
-          return;
-        }
+    loadData();
+  }, []);
 
-        const response = await axios.get(`${API_URL}/api/v1/student/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setUser(response.data.data);
-      } catch (error) {
-        Alert.alert("Error", "Failed to fetch profile data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchDeviceId = async () => {
-      try {
-        const id = Device.osInternalBuildId || Device.deviceName || "Unknown";
-        setDeviceId(id);
-      } catch (error) {
-        console.log("Error fetching device ID:", error);
-      }
-    };
-
-    const fetchDeviceChangeStatus = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          Alert.alert("Error", "Authentication token missing. Please log in.");
-          return;
-        }
-
-        const response = await axios.get(
-          `${API_URL}/api/v1/student/device-change/status`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        setDeviceChangeStatus(response.data.status);
-      } catch (error) {
-        console.log("Error fetching device change status:", error);
-      }
-    };
-
-    fetchProfile();
-    fetchDeviceId();
-    fetchDeviceChangeStatus();
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData().then(() => setRefreshing(false));
   }, []);
 
   const requestDeviceChange = async () => {
@@ -135,12 +147,9 @@ const AccountScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <LinearGradient
-        colors={["#6C63FF", "#8E85FF"]}
-        style={styles.loaderContainer}
-      >
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </LinearGradient>
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
     );
   }
 
@@ -150,7 +159,12 @@ const AccountScreen = ({ navigation }) => {
       style={styles.background}
       blurRadius={5}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <LinearGradient
           colors={["#6C63FF", "#8E85FF"]}
           style={styles.gradientCard}
@@ -158,11 +172,7 @@ const AccountScreen = ({ navigation }) => {
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.avatarContainer}>
-                <Image
-                  size={100}
-                  source={avatraIcon}
-                  style={styles.avatar}
-                />
+                <Image size={100} source={avatraIcon} style={styles.avatar} />
                 <Title style={styles.name}>{user?.name}</Title>
               </View>
               <Divider style={styles.divider} />
@@ -255,10 +265,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#2E3A59",
   },
-  rollNo: {
-    fontSize: 16,
-    color: "#666",
-  },
   divider: {
     marginVertical: 12,
     backgroundColor: "#E0E0E0",
@@ -291,7 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#127a72",
     paddingVertical: 12,
     borderRadius: 12,
-    marginBottom:10,
+    marginBottom: 10,
     shadowColor: "#6C63FF",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
@@ -317,6 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FFFFFF", // White background during loading
   },
 });
 
