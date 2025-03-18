@@ -16,6 +16,7 @@ import * as Location from "expo-location";
 import * as Device from "expo-device";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { v4 as uuidv4 } from "uuid"; // Import UUID generator
 import { Ionicons } from "@expo/vector-icons";
 import { useBackHandler } from "../BackButtonHandler";
 import { API_URL } from "../config";
@@ -85,6 +86,16 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  // Generate or retrieve a unique device ID
+  const getDeviceId = async () => {
+    let deviceId = await AsyncStorage.getItem("deviceId");
+    if (!deviceId) {
+      deviceId = uuidv4(); // Generate a new UUID
+      await AsyncStorage.setItem("deviceId", deviceId); // Store it in AsyncStorage
+    }
+    return deviceId;
+  };
+
   // Handle marking attendance
   const handleMarkAttendance = async (session) => {
     try {
@@ -96,7 +107,7 @@ const HomeScreen = ({ navigation }) => {
         timeout: 10000,
       });
 
-      const deviceId = Device.osInternalBuildId || Device.deviceName || "Unknown";
+      const deviceId = await getDeviceId();
 
       const response = await axios.post(
         `${API_URL}/api/v1/student/attendance/mark`,

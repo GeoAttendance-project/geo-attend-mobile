@@ -1,3 +1,4 @@
+import "react-native-get-random-values"; // Add this line at the top
 import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -21,8 +22,8 @@ import {
   Divider,
   TextInput,
 } from "react-native-paper";
-import * as Device from "expo-device";
 import { LinearGradient } from "expo-linear-gradient";
+import { v4 as uuidv4 } from "uuid"; // Import UUID
 import avatraIcon from "../../assets/avatar.png";
 import { API_URL } from "../config";
 import { navigate } from "../navigationRef";
@@ -36,6 +37,7 @@ const AccountScreen = ({ navigation }) => {
   const [deviceChangeStatus, setDeviceChangeStatus] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Fetch user profile
   const fetchProfile = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -51,20 +53,25 @@ const AccountScreen = ({ navigation }) => {
       setUser(response.data.data);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch profile data.");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchDeviceId = async () => {
+  // Generate or retrieve a unique device ID
+  const getDeviceId = async () => {
     try {
-      const id = Device.osInternalBuildId || Device.deviceName || "Unknown";
-      setDeviceId(id);
+      let deviceId = await AsyncStorage.getItem("deviceId");
+      if (!deviceId) {
+        deviceId = uuidv4(); // Generate a new UUID
+        await AsyncStorage.setItem("deviceId", deviceId); // Store it in AsyncStorage
+      }
+      setDeviceId(deviceId);
     } catch (error) {
       console.log("Error fetching device ID:", error);
+      Alert.alert("Error", "Failed to retrieve device ID.");
     }
   };
 
+  // Fetch device change status
   const fetchDeviceChangeStatus = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -83,13 +90,15 @@ const AccountScreen = ({ navigation }) => {
       setDeviceChangeStatus(response.data.status);
     } catch (error) {
       console.log("Error fetching device change status:", error);
+      Alert.alert("Error", "Failed to fetch device change status.");
     }
   };
 
+  // Load all data
   const loadData = async () => {
     setLoading(true);
     await fetchProfile();
-    await fetchDeviceId();
+    await getDeviceId();
     await fetchDeviceChangeStatus();
     setLoading(false);
   };
@@ -98,11 +107,13 @@ const AccountScreen = ({ navigation }) => {
     loadData();
   }, []);
 
+  // Refresh data
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData().then(() => setRefreshing(false));
   }, []);
 
+  // Request device change
   const requestDeviceChange = async () => {
     if (!reason.trim()) {
       Alert.alert("Error", "Please provide a reason for the device change.");
@@ -129,19 +140,21 @@ const AccountScreen = ({ navigation }) => {
       );
 
       Alert.alert("Success", response.data.message);
-      setDeviceChangeStatus("PENDING"); // Update UI state after request
+      setDeviceChangeStatus("PENDING"); // Update UI state
       setReason(""); // Reset the reason input
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.message);
+      Alert.alert("Error", error.response?.data?.message || "Something went wrong.");
     }
   };
 
+  // Logout
   const logout = async () => {
     try {
       await AsyncStorage.removeItem("token");
       navigate("Signin");
     } catch (error) {
       console.log("Logout Error:", error);
+      Alert.alert("Error", "Failed to log out.");
     }
   };
 
@@ -323,7 +336,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF", // White background during loading
+    backgroundColor: "#FFFFFF",
   },
 });
 
