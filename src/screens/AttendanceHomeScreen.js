@@ -12,9 +12,8 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import MapView, { Marker, Circle } from "react-native-maps"; // Import Circle
+import MapView, { Marker, Circle } from "react-native-maps";
 import * as Location from "expo-location";
-import * as Device from "expo-device";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { v4 as uuidv4 } from "uuid";
@@ -42,11 +41,10 @@ const HomeScreen = ({ navigation }) => {
     isMorning: false,
     isAfternoon: false,
   });
-  const [userLocation, setUserLocation] = useState(null); // State to store user's live location
-  const [attendanceLocation, setAttendanceLocation] = useState(null); // State to store attendance location
+  const [userLocation, setUserLocation] = useState(null);
+  const [attendanceLocation, setAttendanceLocation] = useState(null);
   const [attendanceLocationRadius, setAttendanceLocationRadius] = useState(0);
 
-  // Fetch attendance status on mount
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -54,33 +52,35 @@ const HomeScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
     checkAttendanceStatus();
-    getLiveLocation(); // Fetch live location on mount
+    getLiveLocation();
   }, []);
 
-  // Request location permission and get live location
   const getLiveLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        "Location permission is required to mark attendance."
-      );
-      return;
-    }
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required to mark attendance."
+        );
+        return;
+      }
 
-    // Get live location
-    const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-    setUserLocation({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
-    });
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    } catch (error) {
+      console.log("Error fetching live location:", error);
+      Alert.alert("Error", "Failed to fetch live location.");
+    }
   };
 
-  // Fetch attendance status
   const checkAttendanceStatus = async () => {
     try {
       setLoading(true);
@@ -96,31 +96,29 @@ const HomeScreen = ({ navigation }) => {
         isMorning: response.data.isMorningTime,
         isAfternoon: response.data.isAfternoonTime,
       });
-      // Set attendance location
       setAttendanceLocation({
         latitude: response.data.attendanceLocationLatitude,
         longitude: response.data.attendanceLocationLongitude,
       });
       setAttendanceLocationRadius(response.data.radius);
     } catch (error) {
-      Alert.alert("Failed", error.response?.data?.message);
+      console.log("Error fetching attendance status:", error);
+      Alert.alert("Failed", error.response?.data?.message || "Something went wrong.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // Generate or retrieve a unique device ID
   const getDeviceId = async () => {
     let deviceId = await AsyncStorage.getItem("deviceId");
     if (!deviceId) {
-      deviceId = uuidv4(); // Generate a new UUID
-      await AsyncStorage.setItem("deviceId", deviceId); // Store it in AsyncStorage
+      deviceId = uuidv4();
+      await AsyncStorage.setItem("deviceId", deviceId);
     }
     return deviceId;
   };
 
-  // Handle marking attendance
   const handleMarkAttendance = async (session) => {
     try {
       setMarkingAttendance((prev) => ({ ...prev, [session]: true }));
@@ -154,6 +152,7 @@ const HomeScreen = ({ navigation }) => {
         );
       }
     } catch (error) {
+      console.log("Error marking attendance:", error);
       Alert.alert(
         "Oops!",
         error.response?.data?.message || "Something went wrong"
@@ -306,7 +305,7 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     width: "100%",
-    height: height * 0.3, // Adjust height as needed
+    height: height * 0.3,
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 25,
