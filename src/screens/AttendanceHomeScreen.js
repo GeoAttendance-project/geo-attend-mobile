@@ -12,16 +12,17 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
+import MapView, { Marker, Circle } from "react-native-maps"; // Import Circle
 import * as Location from "expo-location";
 import * as Device from "expo-device";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuidv4 } from "uuid"; // Import UUID generator
+import { v4 as uuidv4 } from "uuid";
 import { Ionicons } from "@expo/vector-icons";
 import { useBackHandler } from "../BackButtonHandler";
 import { API_URL } from "../config";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const HomeScreen = ({ navigation }) => {
   useBackHandler(navigation);
@@ -41,6 +42,9 @@ const HomeScreen = ({ navigation }) => {
     isMorning: false,
     isAfternoon: false,
   });
+  const [userLocation, setUserLocation] = useState(null); // State to store user's live location
+  const [attendanceLocation, setAttendanceLocation] = useState(null); // State to store attendance location
+  const [attendanceLocationRadius, setAttendanceLocationRadius] = useState(0);
 
   // Fetch attendance status on mount
   useEffect(() => {
@@ -50,36 +54,56 @@ const HomeScreen = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
     checkAttendanceStatus();
+    getLiveLocation(); // Fetch live location on mount
   }, []);
 
-  // Request location permission
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Location permission is required to mark attendance."
-        );
-      }
-    })();
-  }, []);
+  // Request location permission and get live location
+  const getLiveLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Location permission is required to mark attendance."
+      );
+      return;
+    }
+
+    // Get live location
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    setUserLocation({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    });
+  };
 
   // Fetch attendance status
   const checkAttendanceStatus = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/v1/student/attendance/status`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${API_URL}/api/v1/student/attendance/status`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setAttendanceMarked(response.data.attendance);
       setAttendanceTime({
         isMorning: response.data.isMorningTime,
         isAfternoon: response.data.isAfternoonTime,
       });
+      // Set attendance location
+      setAttendanceLocation({
+        latitude: response.data.attendanceLocationLatitude,
+        longitude: response.data.attendanceLocationLongitude,
+      });
+      setAttendanceLocationRadius(response.data.radius);
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.message);
+      Alert.alert("Failed", error.response?.data?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -124,10 +148,16 @@ const HomeScreen = ({ navigation }) => {
         setAttendanceMarked((prev) => ({ ...prev, [session]: true }));
         await checkAttendanceStatus();
       } else {
-        Alert.alert("Error", response.data.message || "Failed to mark attendance");
+        Alert.alert(
+          "Success",
+          response.data.message || "Failed to mark attendance"
+        );
       }
     } catch (error) {
-      Alert.alert("Error", error.response?.data?.message || "Something went wrong");
+      Alert.alert(
+        "Oops!",
+        error.response?.data?.message || "Something went wrong"
+      );
     } finally {
       setMarkingAttendance((prev) => ({ ...prev, [session]: false }));
     }
@@ -136,15 +166,57 @@ const HomeScreen = ({ navigation }) => {
   return (
     <ScrollView
       contentContainerStyle={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={checkAttendanceStatus} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={checkAttendanceStatus}
+        />
+      }
     >
       <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
         <Image
-          source={{ uri: "https://i0.wp.com/csice.edu.in/wp-content/uploads/2024/01/csice-logo-main-3.png" }}
+          source={{
+            uri: "https://i0.wp.com/csice.edu.in/wp-content/uploads/2024/01/csice-logo-main-3.png",
+          }}
           style={styles.image}
           accessibilityLabel="College Logo"
         />
       </Animated.View>
+      <View style={styles.mapContainer}>
+        {userLocation && attendanceLocation ? (
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: attendanceLocation.latitude,
+              longitude: attendanceLocation.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+            showsUserLocation={true}
+            followsUserLocation={true}
+          >
+            <Marker
+              coordinate={{
+                latitude: attendanceLocation.latitude,
+                longitude: attendanceLocation.longitude,
+              }}
+              title="Attendance Location"
+              pinColor="blue"
+            />
+            <Circle
+              center={{
+                latitude: attendanceLocation.latitude,
+                longitude: attendanceLocation.longitude,
+              }}
+              radius={attendanceLocationRadius}
+              strokeColor="rgba(255, 0, 0, 0.5)"
+              fillColor="rgba(255, 0, 0, 0.2)"
+            />
+          </MapView>
+        ) : (
+          <ActivityIndicator size="large" color="#6C63FF" />
+        )}
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.header}>Attendance Status</Text>
@@ -153,9 +225,17 @@ const HomeScreen = ({ navigation }) => {
         ) : (
           <View style={styles.statusContainer}>
             <Ionicons
-              name={attendanceMarked.morning && attendanceMarked.afternoon ? "checkmark-circle" : "time-outline"}
+              name={
+                attendanceMarked.morning && attendanceMarked.afternoon
+                  ? "checkmark-circle"
+                  : "time-outline"
+              }
               size={60}
-              color={attendanceMarked.morning && attendanceMarked.afternoon ? "#127a72" : "#FF6584"}
+              color={
+                attendanceMarked.morning && attendanceMarked.afternoon
+                  ? "#127a72"
+                  : "#FF6584"
+              }
             />
             <Text style={styles.statusText}>
               {attendanceMarked.morning && attendanceMarked.afternoon
@@ -171,10 +251,20 @@ const HomeScreen = ({ navigation }) => {
           key={session}
           style={[
             styles.button,
-            (!attendanceTime[`is${session.charAt(0).toUpperCase() + session.slice(1)}`] || attendanceMarked[session]) && styles.disabledButton,
+            (!attendanceTime[
+              `is${session.charAt(0).toUpperCase() + session.slice(1)}`
+            ] ||
+              attendanceMarked[session]) &&
+              styles.disabledButton,
           ]}
           onPress={() => handleMarkAttendance(session)}
-          disabled={!attendanceTime[`is${session.charAt(0).toUpperCase() + session.slice(1)}`] || attendanceMarked[session] || markingAttendance[session]}
+          disabled={
+            !attendanceTime[
+              `is${session.charAt(0).toUpperCase() + session.slice(1)}`
+            ] ||
+            attendanceMarked[session] ||
+            markingAttendance[session]
+          }
           accessibilityRole="button"
           accessibilityLabel={`Mark ${session} Attendance`}
         >
@@ -183,8 +273,12 @@ const HomeScreen = ({ navigation }) => {
           ) : (
             <Text style={styles.buttonText}>
               {attendanceMarked[session]
-                ? `${session.charAt(0).toUpperCase() + session.slice(1)} Attendance Marked`
-                : `Mark ${session.charAt(0).toUpperCase() + session.slice(1)} Attendance`}
+                ? `${
+                    session.charAt(0).toUpperCase() + session.slice(1)
+                  } Attendance Marked`
+                : `Mark ${
+                    session.charAt(0).toUpperCase() + session.slice(1)
+                  } Attendance`}
             </Text>
           )}
         </TouchableOpacity>
@@ -209,6 +303,16 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     height: 150,
     resizeMode: "contain",
+  },
+  mapContainer: {
+    width: "100%",
+    height: height * 0.3, // Adjust height as needed
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 25,
+  },
+  map: {
+    flex: 1,
   },
   card: {
     backgroundColor: "#FFFFFF",
