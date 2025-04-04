@@ -7,15 +7,21 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
+  Modal,
+  Pressable,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_URL } from "../config";
+import { WebView } from "react-native-webview";
+
 const AnnouncementsScreen = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [webviewLink, setWebviewLink] = useState(null);
 
   const fetchAnnouncements = async () => {
     try {
@@ -53,6 +59,11 @@ const AnnouncementsScreen = () => {
     fetchAnnouncements();
   }, []);
 
+  const openAttachment = (link) => {
+    setWebviewLink(link);
+    setModalVisible(true);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -80,10 +91,36 @@ const AnnouncementsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.content}>{item.content}</Text>
-            <Text style={styles.date}>{new Date(item.createdAt).toDateString()}</Text>
+
+            {item.attachmentLink && (
+              <Pressable
+                style={styles.attachmentButton}
+                onPress={() => openAttachment(item.attachmentLink)}
+              >
+                <Text style={styles.attachmentText}>View Attachment</Text>
+              </Pressable>
+            )}
+
+            <Text style={styles.date}>
+              {new Date(item.createdAt).toDateString()}
+            </Text>
           </View>
         )}
       />
+
+      {/* WebView Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1 }}>
+          <Pressable style={styles.closeButton} onPress={() => setModalVisible(false)}>
+            <Text style={{ color: "white", fontWeight: "bold" }}>Close</Text>
+          </Pressable>
+          <WebView source={{ uri: webviewLink }} style={{ flex: 1 }} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -130,11 +167,29 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#444",
   },
+  attachmentButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 6,
+    marginBottom: 10,
+    alignSelf: "flex-start",
+  },
+  attachmentText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
   date: {
     fontSize: 14,
     textAlign: "right",
     color: "#666",
     fontStyle: "italic",
+  },
+  closeButton: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    alignItems: "center",
   },
 });
 

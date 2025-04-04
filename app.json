@@ -22,6 +22,9 @@
       "bundleIdentifier": "csice.attendnace",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyBvjtVES1vINEWrJD2_lOW7a3EY7rVcdvQ"
       }
     },
     "android": {
@@ -30,16 +33,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "csice.attendnace"
+      "package": "csice.attendnace",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBvjtVES1vINEWrJD2_lOW7a3EY7rVcdvQ"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "87583c5b-b539-446e-8598-13279ca906bb"
+        "projectId": "3be787e8-d5e3-4bee-a6ff-e8b24be41e64"
       }
-    },
-    "owner": "saranmani"
+    }
   }
 }

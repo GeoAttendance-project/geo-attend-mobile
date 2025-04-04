@@ -72,8 +72,8 @@ const HomeScreen = ({ navigation }) => {
       setUserLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
       });
     } catch (error) {
       console.log("Error fetching live location:", error);
@@ -193,6 +193,7 @@ const HomeScreen = ({ navigation }) => {
             }}
             showsUserLocation={true}
             followsUserLocation={true}
+            showsBuildings={false}
           >
             <Marker
               coordinate={{
